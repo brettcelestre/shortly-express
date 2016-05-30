@@ -25,7 +25,8 @@ app.use(express.static(__dirname + '/public'));
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  // res.render('index');
+  res.render('login');
 });
 
 app.get('/create', 
@@ -40,8 +41,47 @@ function(req, res) {
   });
 });
 
+//get signup page
+app.get('/signup', 
+function(req, res) {
+  res.render('signup');
+});
+//signup post route
+app.post('/signup',
+  function(req, res) {
+    console.log('signup req.body', req.body);
+    //separate username and password
+    var newUser = new User(req.body);
+    newUser.save().then(function(newUser) {
+      Users.add(newUser);
+      console.log('Inside newUser save/then method');
+      res.send(200, newUser);
+      // res.send(200, Users);
+    });
+
+    //TODO add later
+    //check to see if user exists with username
+    //END TODO
+});
+
+// Login route
+app.post('/login',
+  function(req, res){
+    console.log('Login POST req.body', req.body);
+    // Check Users collection if user/pass exists
+      // if false
+        // Return login page with error message
+      // if true
+        // create a session with user/pass
+        // return to their index page, load their link collection
+});
+
 app.post('/links', 
 function(req, res) {
+
+  //added to check submit button
+  console.log('post link with shorten button req: ', req.body);
+
   var uri = req.body.url;
 
   if (!util.isValidUrl(uri)) {
