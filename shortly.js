@@ -37,6 +37,7 @@ app.get('/users',
 
 app.get('/', 
 function(req, res) {
+  Users.reset().fetch();
   util.restrict(req, res, function(){
     res.render('index');
   });
@@ -44,13 +45,17 @@ function(req, res) {
 
 app.get('/create', 
 function(req, res) {
-  res.render('index');
+  util.restrict(req, res, function(){
+    res.render('index');
+  });
 });
 
 app.get('/links', 
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
+  util.restrict(req, res, function(){
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
   });
 });
 
@@ -84,7 +89,7 @@ app.post('/signup',
       newUser.save().then(function(newUser) {
         Users.add(newUser);
         console.log('Inside newUser save/then method');
-        res.send(200, newUser);
+        res.redirect('/');
         // res.send(200, Users);
       });
     } else {
@@ -104,16 +109,24 @@ app.get('/login',
 function(req, res) {
   // Loads all of the Users info into the server on page load
   Users.reset().fetch();
-  // Response renders login page
   res.render('login');
+
+  // RETHINK THIS
+  // util.restrict(req, res, function(){
+  //   // Response renders login page
+  //   res.redirect('/');
+  // });
 });
 
 // Login POST route
 app.post('/login',
   function(req, res){
 
+    Users.reset().fetch();
+
     var username = req.body.username;
     var password = req.body.password;
+
 
     // Check Users collection if user/pass exists
     if ( Users.findWhere(req.body) ){
@@ -121,14 +134,28 @@ app.post('/login',
       req.session.regenerate(function(){
         req.session.user = username;
         // return to their index page, load their link collection
-        res.redirect('/index');
+        res.redirect('/');
+        // res.send(302, {location: '/'});
       });
     } else {
-       
+      console.log('app.post /login ran');
+      console.log('Users.reset().fetch()', Users.reset().fetch());
+      
+      // Users.reset().fetch().then(function(users) {
+      //   console.log('users.models', users.models);
+      //   res.send(200, users.models);
+      // });
+
       // TODO---: Create message that login info was incorrect
 
+      // START HERE ----------------------------------------------------------
+      // Need to send response with a redirect to /login
+
+      // We need to write res.writeHeader( with the location )
+
       // Return login page with error message
-      res.redirect('/login');
+      // res.redirect('/login');
+      res.send(302, '/login');
     }
 });
 
