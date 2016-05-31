@@ -21,7 +21,8 @@ db.knex.schema.hasTable('urls').then(function(exists) {
       link.string('base_url', 255);
       link.string('code', 100);
       link.string('title', 255);
-      // link.string('salt', 255);
+      link.string('username', 255);   // Added
+      link.integer('user_id');    // Added
       link.integer('visits');
       link.timestamps();
     }).then(function (table) {
@@ -58,5 +59,28 @@ db.knex.schema.hasTable('users').then(function(exists) {
     });
   }
 });
+
+// ALTER TABLE tableName ADD COLUMN colName TEXT;
+
+// Drops all of the tables
+// db.knex.schema.hasTable('users').then(function(exists) {
+//   if (exists) {
+//     console.log('drop tables');
+//     db.knex.schema.dropTable('users');
+//   }
+// });
+
+// db.knex.select('id').table('users').
+
+db.findUserId = function(user){
+  // console.log('db knex user id select', db.knex('users').where({ username: user }).select('id'));
+  console.log('db knex user id select', db.knex('users'));
+
+  // .select('id')
+
+  //return db.knex('users').where({ username: user }).select('id');
+};
+
+
 
 module.exports = db;

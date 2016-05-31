@@ -27,7 +27,6 @@ app.use(session({
   secret: '15thfloor'
 }));
 
-
 app.get('/users', 
   function(req, res){
     Users.reset().fetch().then(function(users) {
@@ -65,32 +64,30 @@ function(req, res) {
   res.render('signup');
 });
 
-// app.get('/remove',
-//   function(req, res){
-//     // var removeUser = req.url.substring(7);
-//     // var name = window.prompt('who do you want to remove?');
-//     // var id = Users.findWhere({username: 'test1'});
-//     Users.remove(2);
-//     // console.log('removeUser', removeUser);
-//     res.send(200, 'hello');
-// });
-
 //signup post route
 app.post('/signup',
   function(req, res) {
-    console.log('signup req.body', req.body);
-    
-    // console.log('Users ', Users);
 
     //check to see if user exists with username
     if ( !Users.findWhere({username: req.body.username}) ){
+      
+      // TODO---: Salt the username, and concat it to the hashed password
+      // for added security
+
+      // Creates a hashed version of the users password
+      var hashedPassword = util.passwordHash(req.body.password);
+      
+      //create our own req.body with hashed password
       //separate username and password
-      var newUser = new User(req.body);
+      var userInfo = {
+        username: req.body.username,
+        password: hashedPassword
+      };
+
+      var newUser = new User(userInfo);
       newUser.save().then(function(newUser) {
         Users.add(newUser);
-        console.log('Inside newUser save/then method');
         res.redirect('/');
-        // res.send(200, Users);
       });
     } else {
       
@@ -122,40 +119,31 @@ function(req, res) {
 app.post('/login',
   function(req, res){
 
-    Users.reset().fetch();
+    // Pretty sure we don't need this
+    // Users.reset().fetch();
 
-    var username = req.body.username;
-    var password = req.body.password;
+    // Creates a login object with a hashed password
+    // TODO:--- May need to rework the hashed password to include hashed username
+    var loginInfo = {
+      username: req.body.username,
+      password: util.passwordHash(req.body.password)
+    };
 
-
-    // Check Users collection if user/pass exists
-    if ( Users.findWhere(req.body) ){
+    // // Check Users collection if user/pass exists
+    if ( Users.findWhere(loginInfo) ){
       // create a session with user/pass
       req.session.regenerate(function(){
-        req.session.user = username;
+        req.session.user = loginInfo.username;
         // return to their index page, load their link collection
         res.redirect('/');
-        // res.send(302, {location: '/'});
       });
     } else {
-      console.log('app.post /login ran');
-      console.log('Users.reset().fetch()', Users.reset().fetch());
-      
-      // Users.reset().fetch().then(function(users) {
-      //   console.log('users.models', users.models);
-      //   res.send(200, users.models);
-      // });
 
       // TODO---: Create message that login info was incorrect
 
-      // START HERE ----------------------------------------------------------
-      // Need to send response with a redirect to /login
-
-      // We need to write res.writeHeader( with the location )
-
       // Return login page with error message
-      // res.redirect('/login');
-      res.send(302, '/login');
+      // Need to send response with a redirect to /login
+      res.redirect('/login');
     }
 });
 
@@ -169,18 +157,22 @@ app.get('/logout',
 app.post('/links', 
 function(req, res) {
 
-  //added to check submit button
-  console.log('post link with shorten button req: ', req.body);
-
   var uri = req.body.url;
-  // var salt = req.session.user;
 
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
+  // db.findUserId(req.session.user);
+  // var userId = db.findUserId(req.session.user);
+      // We were trying to extract the user id so that we could insert it
+      // into the link table, under the user_id column, so that when a specific 
+      // session user clicked on a link we would find their specific link and
+      // only track clicks on their link.
+
+  // new Link One
+  new Link({ url: uri, username: req.session.user }).fetch().then(function(found) {
     if (found) {
       res.send(200, found.attributes);
     } else {
@@ -190,10 +182,12 @@ function(req, res) {
           return res.send(404);
         }
 
+        // new Link Two
         var link = new Link({
           url: uri,
           title: title,
-          // salt: salt,
+          username: req.session.user,
+          // user_id: 
           base_url: req.headers.origin
         });
 
