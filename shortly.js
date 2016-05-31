@@ -1,7 +1,8 @@
-var express = require('express');
-var util = require('./lib/utility');
-var partials = require('express-partials');
-var bodyParser = require('body-parser');
+var express     = require('express');
+var util        = require('./lib/utility');
+var partials    = require('express-partials');
+var bodyParser  = require('body-parser');
+var session     = require('express-session');
 
 
 var db = require('./app/config');
@@ -21,12 +22,24 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
+// Starts our session
+app.use(session({
+  secret: '15thfloor'
+}));
 
+
+app.get('/users', 
+  function(req, res){
+    Users.reset().fetch().then(function(users) {
+      res.send(200, users.models);
+    });
+});
 
 app.get('/', 
 function(req, res) {
-  // res.render('index');
-  res.render('login');
+  util.restrict(req, res, function(){
+    res.render('index');
+  });
 });
 
 app.get('/create', 
@@ -46,34 +59,84 @@ app.get('/signup',
 function(req, res) {
   res.render('signup');
 });
+
+// app.get('/remove',
+//   function(req, res){
+//     // var removeUser = req.url.substring(7);
+//     // var name = window.prompt('who do you want to remove?');
+//     // var id = Users.findWhere({username: 'test1'});
+//     Users.remove(2);
+//     // console.log('removeUser', removeUser);
+//     res.send(200, 'hello');
+// });
+
 //signup post route
 app.post('/signup',
   function(req, res) {
     console.log('signup req.body', req.body);
-    //separate username and password
-    var newUser = new User(req.body);
-    newUser.save().then(function(newUser) {
-      Users.add(newUser);
-      console.log('Inside newUser save/then method');
-      res.send(200, newUser);
-      // res.send(200, Users);
-    });
+    
+    // console.log('Users ', Users);
 
-    //TODO add later
     //check to see if user exists with username
-    //END TODO
+    if ( !Users.findWhere({username: req.body.username}) ){
+      //separate username and password
+      var newUser = new User(req.body);
+      newUser.save().then(function(newUser) {
+        Users.add(newUser);
+        console.log('Inside newUser save/then method');
+        res.send(200, newUser);
+        // res.send(200, Users);
+      });
+    } else {
+      
+      // TODO---: Make this section run smoother:
+
+      // alert('This username already exists. Try something else.');
+      res.send(500, 'This username already exists. Try something else.');
+      // res.send(500, '/signup');
+      // res.redirect('/signup');
+    }
+    
 });
 
-// Login route
+// Login GET route
+app.get('/login', 
+function(req, res) {
+  // Loads all of the Users info into the server on page load
+  Users.reset().fetch();
+  // Response renders login page
+  res.render('login');
+});
+
+// Login POST route
 app.post('/login',
   function(req, res){
-    console.log('Login POST req.body', req.body);
+
+    var username = req.body.username;
+    var password = req.body.password;
+
     // Check Users collection if user/pass exists
-      // if false
-        // Return login page with error message
-      // if true
-        // create a session with user/pass
+    if ( Users.findWhere(req.body) ){
+      // create a session with user/pass
+      req.session.regenerate(function(){
+        req.session.user = username;
         // return to their index page, load their link collection
+        res.redirect('/index');
+      });
+    } else {
+       
+      // TODO---: Create message that login info was incorrect
+
+      // Return login page with error message
+      res.redirect('/login');
+    }
+});
+
+app.get('/logout',
+  function(req, res){
+    req.session.destroy(function(){
+      res.redirect('/');
+    });
 });
 
 app.post('/links', 
@@ -83,6 +146,7 @@ function(req, res) {
   console.log('post link with shorten button req: ', req.body);
 
   var uri = req.body.url;
+  // var salt = req.session.user;
 
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
@@ -102,6 +166,7 @@ function(req, res) {
         var link = new Link({
           url: uri,
           title: title,
+          // salt: salt,
           base_url: req.headers.origin
         });
 

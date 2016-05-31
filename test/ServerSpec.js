@@ -28,7 +28,7 @@ var xbeforeEach = function(){};
 
 describe('', function() {
 
-  beforeEach(function() {
+  xbeforeEach(function() {
     // log out currently signed in user
     request('http://127.0.0.1:4568/logout', function(error, res, body) {});
 
@@ -68,7 +68,7 @@ describe('', function() {
       });
   });
 
-  describe('Link creation:', function(){
+  xdescribe('Link creation:', function(){
 
     var requestWithSession = request.defaults({jar: true});
     xbeforeEach(function(done){      // create a user that we can then log-in with
@@ -144,12 +144,12 @@ describe('', function() {
       it('Fetches the link url title', function (done) {
         requestWithSession(options, function(error, res, body) {
           db.knex('urls')
-            .where('title', '=', 'GitHub · Where software is built')
+            .where('title', '=', 'How people build software · GitHub')
             .then(function(urls) {
               if (urls['0'] && urls['0']['title']) {
                 var foundTitle = urls['0']['title'];
               }
-              expect(foundTitle).to.equal('GitHub · Where software is built');
+              expect(foundTitle).to.equal('How people build software · GitHub');
               done();
             });
         });
@@ -157,11 +157,11 @@ describe('', function() {
 
     }); // 'Shortening links'
 
-    describe('With previously saved urls:', function(){
+    xdescribe('With previously saved urls:', function(){
 
       var link;
 
-      beforeEach(function(done){
+      xbeforeEach(function(done){
         // save a link to the database
         link = new Link({
           url: 'http://www.github.com/',
@@ -220,7 +220,24 @@ describe('', function() {
 
   }); // 'Link creation'
 
-    xbeforeEach(function(done){('Privileged Access:', function(){
+  describe('Privileged Access:', function(){
+
+      xbeforeEach(function() {
+        // log out currently signed in user
+        request('http://127.0.0.1:4568/logout', function(error, res, body) {});
+
+        // delete link for github from db so it can be created later for the test
+        db.knex('urls')
+          .where('url', '=', 'http://www.github.com/')
+          .del()
+          .catch(function(error) {
+            throw {
+              type: 'DatabaseError',
+              message: 'Failed to create test setup data'
+            };
+          });
+          
+      });
 
     it('Redirects to login page if a user tries to access the main page and is not signed in', function(done) {
       request('http://127.0.0.1:4568/', function(error, res, body) {
